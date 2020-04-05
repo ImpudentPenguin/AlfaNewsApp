@@ -7,12 +7,12 @@ import androidx.room.RoomDatabase
 import com.elenamakeeva.alfanewsapp.api.FavouriteNews
 import com.elenamakeeva.alfanewsapp.api.Item
 
-@Database(entities = [Item::class, FavouriteNews::class], version = 10, exportSchema = false)
+@Database(entities = [Item::class, FavouriteNews::class], version = 13, exportSchema = false)
 abstract class ItemsDatabase: RoomDatabase() {
     abstract fun itemsDao() : ItemsDao
 
     companion object{
-        private val dbName: String = "news.db"
+        private const val DB_NAME: String = "news.db"
         private var database: ItemsDatabase? = null
         private var lock = Any()
 
@@ -22,7 +22,7 @@ abstract class ItemsDatabase: RoomDatabase() {
                     database = Room.databaseBuilder(
                         context.applicationContext,
                         ItemsDatabase::class.java,
-                        dbName
+                        DB_NAME
                     )
                         .fallbackToDestructiveMigration()
                         .build()

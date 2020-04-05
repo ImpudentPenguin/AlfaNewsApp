@@ -13,7 +13,7 @@ class MainActivity : AppCompatActivity() {
         setTheme(R.style.AppTheme)
         setContentView(R.layout.activity_main)
         super.onCreate(savedInstanceState)
-        title = "Новости Альфа Банка"
+        title = getString(R.string.news_alfa_bank)
 
         if(savedInstanceState == null) {
             supportFragmentManager.beginTransaction()

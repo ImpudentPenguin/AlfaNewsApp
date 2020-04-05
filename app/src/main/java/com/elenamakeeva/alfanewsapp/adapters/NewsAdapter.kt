@@ -7,7 +7,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.elenamakeeva.alfanewsapp.R
 import com.elenamakeeva.alfanewsapp.api.AbstractNews
-import com.elenamakeeva.alfanewsapp.api.Item
 
 class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ItemViewHolder> () {
 
@@ -34,7 +33,6 @@ class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ItemViewHolder> () {
         holder.title?.text = news?.title
         holder.pubDate?.text = news?.pubDate
     }
-
 
     inner class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         internal var title: TextView? = null

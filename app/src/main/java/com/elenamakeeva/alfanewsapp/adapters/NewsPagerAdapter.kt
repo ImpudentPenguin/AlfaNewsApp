@@ -1,33 +1,27 @@
 package com.elenamakeeva.alfanewsapp.adapters
 
-import android.graphics.Bitmap
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ProgressBar
 import androidx.viewpager.widget.PagerAdapter
 import com.elenamakeeva.alfanewsapp.R
-import com.elenamakeeva.alfanewsapp.api.Item
+import com.elenamakeeva.alfanewsapp.api.AbstractNews
 
-class NewsPagerAdapter(private val news: List<Item>) : PagerAdapter() {
+class NewsPagerAdapter(private val news: List<AbstractNews>) : PagerAdapter() {
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
         val viewItem = LayoutInflater.from(container.context).inflate(R.layout.item_news_pager, container, false)
         val webView = viewItem.findViewById(R.id.news_webView) as WebView
-        webView.visibility = View.INVISIBLE
         val progressBar = viewItem.findViewById(R.id.progressBar) as ProgressBar
-        progressBar.visibility = View.INVISIBLE
+        progressBar.visibility = View.VISIBLE
 
         webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                progressBar.visibility = View.VISIBLE
-                webView.visibility = View.GONE
-
-            }
             override fun onPageFinished(view: WebView?, url: String?) {
                 progressBar.visibility = View.GONE
                 webView.visibility = View.VISIBLE
@@ -41,6 +35,8 @@ class NewsPagerAdapter(private val news: List<Item>) : PagerAdapter() {
                         "})()")
             }
         }
+        webView.settings.setAppCacheEnabled(true)
+        webView.settings.cacheMode = WebSettings.LOAD_DEFAULT
         webView.settings.javaScriptEnabled = true
         webView.loadUrl(news[position].link)
         container.addView(viewItem)

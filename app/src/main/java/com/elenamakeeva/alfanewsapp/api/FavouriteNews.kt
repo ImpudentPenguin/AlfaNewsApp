@@ -5,22 +5,18 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "favourite_news")
 data class FavouriteNews (
-
     override var title: String,
     override var link: String,
-    override var pubDate: String,
-    override var guid: String
-
+    override var pubDate: String
 ) : AbstractNews() {
 
     @PrimaryKey(autoGenerate = true)
     override var id: Int = 0
 
-    constructor(id: Int,title: String, link: String, pubDate: String, guid: String) : this(title, link,  pubDate, guid) {
+    constructor(id: Int, title: String, link: String, pubDate: String) : this(title, link,  pubDate) {
         this.id = id
         this.title = title
         this.link = link
         this.pubDate = pubDate
-        this.guid = guid
     }
 }

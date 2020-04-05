@@ -5,104 +5,86 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.work.impl.Scheduler
+import androidx.work.*
 import com.elenamakeeva.alfanewsapp.api.FavouriteNews
 import com.elenamakeeva.alfanewsapp.api.Item
 import com.elenamakeeva.alfanewsapp.api.News
 import com.elenamakeeva.alfanewsapp.logic.api.ApiServices
 import com.elenamakeeva.alfanewsapp.logic.database.ItemsDatabase
+import com.elenamakeeva.alfanewsapp.logic.worker.SyncNewsWorker
 import io.reactivex.Completable
-import io.reactivex.Flowable
-import io.reactivex.Maybe
-import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import java.util.*
-import java.util.stream.Collectors
+import java.util.concurrent.TimeUnit
 
 @SuppressLint("CheckResult")
 class NewsViewModel (application: Application) : AndroidViewModel(application) {
     private val apiServices = ApiServices()
-    private var viewStateNewsList = MutableLiveData<List<Item>>()
-    private var viewStateFavNews = MutableLiveData<FavouriteNews>()
-    private var viewStateLinkList = MutableLiveData<List<String>>()
-    private var viewStateFavouriteNewsList = MutableLiveData<List<FavouriteNews>>()
-    var database: ItemsDatabase
+    private var database: ItemsDatabase = ItemsDatabase.getInstance(application)
 
-    val viewState: LiveData<List<Item>> = viewStateNewsList
+    val viewState: LiveData<List<Item>> = database.itemsDao().getAllNews()
+    val viewStateFavNewsList: LiveData<List<FavouriteNews>> = database.itemsDao().getAllFavouriteNews()
+
     init {
-        database = ItemsDatabase.getInstance(application)
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val oneTimeSyncDataWork = OneTimeWorkRequest.Builder(SyncNewsWorker::class.java).build()
+        WorkManager.getInstance(application).enqueue(oneTimeSyncDataWork)
+
+        val periodicSyncDataWork = PeriodicWorkRequest.Builder(SyncNewsWorker::class.java, 15, TimeUnit.MINUTES)
+            .addTag("sync news")
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                PeriodicWorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
+            .build()
+
+        WorkManager.getInstance(application).enqueueUniquePeriodicWork(
+            "sync work",
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicSyncDataWork
+        )
     }
 
-
-    private fun onLoadNews() {
-        apiServices.getNews()
+    fun onLoadNews() : Disposable {
+        return apiServices.getNews()
             .map(News::channel)
-          //  .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
-                insertDatabase(it)
-                updateLinkList(it.itemList!!)
+                insertAllNews(it)
             }, {
                 processError(it)
             })
     }
 
-    fun getAllNews() : LiveData<List<Item>> {
-        onLoadNews()
-        database.itemsDao().getAllNews()
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-            viewStateNewsList.postValue(it)
-        }, {
-            processError(it)
-        })
-        return viewStateNewsList
-    }
-
-    fun getAllFavouriteNews() : LiveData<List<FavouriteNews>> {
-        database.itemsDao().getAllFavouriteNews()
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-            viewStateFavouriteNewsList.postValue(it)
-                Log.i("infoAlfa", it.isNullOrEmpty().toString())
-        }, {
-            processError(it)
-        })
-        return viewStateFavouriteNewsList
-    }
-
-    fun getFavouriteNews(id: Int) : LiveData<FavouriteNews> {
-        database.itemsDao().getFavouriteNews(id)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe ({
-                viewStateFavNews.postValue(it)
-            },{
-                processError(it)
-            })
-        return viewStateFavNews
-    }
-
+    fun getFavouriteNews(id: Int) : LiveData<FavouriteNews> = database.itemsDao().getFavouriteNews(id)
 
     fun insertFavouriteNews(favNews: FavouriteNews) {
         Completable.fromAction {
-            database.itemsDao().insertFavouriteItem(favNews) }
-            .subscribeOn(Schedulers.io())
+            database.itemsDao().insertFavouriteItem(favNews)}
             .observeOn(AndroidSchedulers.mainThread())
+            .subscribeOn(Schedulers.io())
+            .subscribe()
     }
 
-    private fun insertDatabase(channel: News.Channel?) {
+    fun deleteFavouriteNews(favNews: FavouriteNews) {
+        Completable.fromAction {
+            database.itemsDao().deleteFavouriteItem(favNews)}
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribeOn(Schedulers.io())
+            .subscribe()
+    }
+
+    private fun insertAllNews(channel: News.Channel?) {
         if(channel == null) processError(NullPointerException())
         for(id in 0 until channel!!.itemList!!.size) {
             channel.itemList?.get(id)?.let { database.itemsDao().insertItem(it) }
         }
     }
 
-    private fun updateLinkList(itemList: List<Item>) = viewStateLinkList.postValue(itemList.stream().map(Item::link).collect(Collectors.toList()))
-
-    private fun processError(throwable: Throwable) {
-        Log.e("ErrorAlfaNewsApp", throwable.message!!)
-    }
-
+    private fun processError(throwable: Throwable) = Log.e("ErrorAlfaNewsApp", throwable.message!!)
 }

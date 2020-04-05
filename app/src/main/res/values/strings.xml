@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">AlfaNewsApp</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="add_favourite">Добавить в избранное</string>
+    <string name="home">Главная</string>
+    <string name="favourite">Избранное</string>
+    <string name="empty_favourite_list">Избранное отсутствует</string>
+    <string name="news_add_favourite">Новость добавлена в избранное</string>
+    <string name="news_remove_favourite">Новость удалена из избранного</string>
+    <string name="news_alfa_bank">Новости Альфа Банка</string>
 </resources>
